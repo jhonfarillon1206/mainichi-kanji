@@ -50,6 +50,8 @@ const newLeft = computed(() => {
   return Math.max(0, Math.min((data.value.deck.newPerDay ?? 10) - data.value.newDoneToday, counts.value.new))
 })
 const waiting = computed(() => counts.value.due + newLeft.value)
+// Quiz on meanings when the deck has them (e.g. vocab), otherwise on readings (e.g. Hiragana).
+const quizField = computed(() => (data.value?.cards.filter(c => (c.meaning || '').trim()).length >= 4 ? 'meaning' : 'reading'))
 const symbol = computed(() => data.value?.deck?.symbol || [...(data.value?.cards || [])].sort((a, b) => a.id - b.id)[0]?.front?.[0] || '字')
 
 // ---- Card modal ----
@@ -233,6 +235,7 @@ function nextLabel(c) {
       <button class="btn-ghost" @click="openAdd">+ Add kanji</button>
       <RouterLink v-if="waiting" :to="`/study/${deckId}?mode=mixed`" class="btn-primary">Study {{ waiting }}</RouterLink>
       <RouterLink v-if="counts.all" :to="`/study/${deckId}?mode=all`" :class="waiting ? 'btn-ghost' : 'btn-primary'">Practice all {{ counts.all - counts.suspended }}</RouterLink>
+      <RouterLink v-if="counts.all >= 4" :to="`/quiz/${deckId}?ask=${quizField}`" class="btn-ghost">Quiz</RouterLink>
     </section>
 
     <!-- Empty -->
