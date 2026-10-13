@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, toRaw } from 'vue'
 import { useRoute } from 'vue-router'
 import { db } from '../lib/db'
-import { buildQueue, gradeCard, undoGrade, Rating, State } from '../lib/srs'
+import { buildQueue, gradeCard, undoGrade, shuffle, inOrder, Rating, State } from '../lib/srs'
 import CardModal from '../components/CardModal.vue'
 
 const route = useRoute()
@@ -20,6 +20,19 @@ const backCount = ref(0)
 const nextDue = ref(null)
 const editing = ref(false)
 
+// Shuffle preference, remembered on this device.
+let saved = false
+try { saved = localStorage.getItem('shuffle') === '1' } catch {}
+const shuffled = ref(saved)
+function toggleShuffle() {
+  shuffled.value = !shuffled.value
+  try { localStorage.setItem('shuffle', shuffled.value ? '1' : '0') } catch {}
+  // Reorder the cards still left; the current card stays on screen.
+  const [first, ...rest] = queue.value
+  if (!first) return
+  queue.value = [first, ...(shuffled.value ? shuffle(rest) : inOrder(rest))]
+}
+
 const current = computed(() => queue.value[0])
 const progress = computed(() => {
   const total = done.value.total + queue.value.length
@@ -34,7 +47,7 @@ const kind = computed(() => {
 
 onMounted(async () => {
   if (deckId) deckName.value = (await db.decks.get(deckId))?.name || 'Deck'
-  queue.value = await buildQueue(deckId, mode)
+  queue.value = await buildQueue(deckId, mode, shuffled.value)
   if (!queue.value.length) {
     const upcoming = (deckId ? await db.cards.where('deckId').equals(deckId).toArray() : await db.cards.toArray())
       .filter(c => !c.suspended && c.state !== State.New)
@@ -123,10 +136,16 @@ const againLink = () => `/study/${route.params.id}?mode=all&t=${Date.now()}`
 
     <div class="mb-3 flex items-center gap-2">
       <RouterLink :to="backTo" class="mr-auto truncate text-sm font-bold text-ink/55 hover:text-ink">← {{ deckName }}</RouterLink>
-      <div class="flex rounded-full bg-white/60 p-1 text-xs">
+      <button
+        class="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-bold transition"
+        :class="shuffled ? 'bg-sakura text-ink' : 'bg-white/60 text-ink/55'"
+        :aria-pressed="shuffled" title="Shuffle the order"
+        @click="toggleShuffle"
+      >⇄ Shuffle</button>
+      <div class="flex shrink-0 rounded-full bg-white/60 p-1 text-xs">
         <RouterLink
           v-for="m in modes" :key="m.key" :to="`/study/${route.params.id}?mode=${m.key}`"
-          class="rounded-full px-3 py-1" :class="mode === m.key ? 'bg-ink font-bold text-white' : 'font-medium text-ink/65'"
+          class="whitespace-nowrap rounded-full px-3 py-1" :class="mode === m.key ? 'bg-ink font-bold text-white' : 'font-medium text-ink/65'"
         >{{ m.label }}</RouterLink>
       </div>
     </div>

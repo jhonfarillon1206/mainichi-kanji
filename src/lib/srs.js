@@ -60,9 +60,26 @@ function formatInterval(ms) {
   return `${(d / 365).toFixed(1)}y`
 }
 
-// Builds a session queue. mode: 'mixed' | 'review' | 'new'.
+// Returns a randomly ordered copy of a list.
+export function shuffle(list) {
+  const out = [...list]
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
+}
+
+// Returns a copy in the order the cards were added.
+export function inOrder(list) {
+  return [...list].sort((a, b) => a.id - b.id)
+}
+
+// Builds a session queue. mode: 'mixed' | 'review' | 'new' | 'all'.
+// random = true shuffles it, false keeps the order cards were added.
 // deckId null = all decks.
-export async function buildQueue(deckId, mode) {
+export async function buildQueue(deckId, mode, random = false) {
+  const order = random ? shuffle : inOrder
   const s = await getSettings()
   const now = new Date()
   const today = dayKey(now, s.dayStartHour)
@@ -75,15 +92,8 @@ export async function buildQueue(deckId, mode) {
 
   const active = cards.filter(c => !c.suspended)
 
-  // All cards: every card in the deck, shuffled, with no daily limits.
-  if (mode === 'all') {
-    const all = [...active]
-    for (let i = all.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[all[i], all[j]] = [all[j], all[i]]
-    }
-    return all
-  }
+  // All cards: every card in the deck, with no daily limits.
+  if (mode === 'all') return order(active)
 
   const due = active
     .filter(c => c.state !== State.New && c.due <= now)
@@ -107,17 +117,9 @@ export async function buildQueue(deckId, mode) {
     }
   }
 
-  if (mode === 'review') return due
-  if (mode === 'new') return fresh
-  // Mixed: spread new cards through the reviews.
-  const out = []
-  const step = fresh.length ? Math.max(1, Math.floor(due.length / fresh.length)) : 1
-  let di = 0, fi = 0
-  while (di < due.length || fi < fresh.length) {
-    for (let k = 0; k < step && di < due.length; k++) out.push(due[di++])
-    if (fi < fresh.length) out.push(fresh[fi++])
-  }
-  return out
+  if (mode === 'review') return order(due)
+  if (mode === 'new') return order(fresh)
+  return order([...due, ...fresh])
 }
 
 // Grades a card, saves it, writes the review log. Returns { updated, logId } (logId is used for undo).
