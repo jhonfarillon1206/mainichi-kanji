@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+/* Palette: anime-sky blue, ai (indigo) ink, sakura, shu (vermilion), matcha. */
+@theme {
+  --font-sans: "M PLUS Rounded 1c", ui-rounded, system-ui, "Hiragino Maru Gothic ProN", "Yu Gothic UI", sans-serif;
+  --font-jp: "Klee One", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --color-ink: #2b3a67;
+  --color-sora: #dcebfa;
+  --color-washi: #fffdf8;
+  --color-sakura: #f2a7b8;
+  --color-sakura-soft: #fde8ee;
+  --color-shu: #c8402e;
+  --color-matcha: #4f7a45;
+  --color-yamabuki: #b9770e;
+}
+
+@layer base {
+  body {
+    color: var(--color-ink);
+    background: linear-gradient(180deg, #c9e0f7 0px, #e3eefa 260px, #f2f6fb 560px) no-repeat, #f2f6fb;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  button { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  :focus-visible { outline: 2px solid var(--color-sakura); outline-offset: 2px; }
+}
+
+@layer components {
+  .btn-primary, .btn-ghost, .btn-danger, .btn-red {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full px-5 py-2 text-sm font-bold transition active:scale-[.97] disabled:opacity-40;
+  }
+  .btn-primary { @apply bg-ink text-white shadow-[0_3px_0_#18224a] hover:bg-[#34467a]; }
+  .btn-ghost { @apply border-2 border-ink/15 bg-white/80 text-ink hover:border-ink/30 hover:bg-white; }
+  .btn-danger { @apply border-2 border-shu/25 bg-white text-shu hover:bg-sakura-soft; }
+  .btn-red { @apply bg-shu text-white shadow-[0_3px_0_#8f2a1d] hover:bg-[#b23726]; }
+  .input { @apply w-full rounded-xl border-2 border-ink/12 bg-white px-3 py-2 text-sm transition focus:border-sakura focus:ring-4 focus:ring-sakura/25 focus:outline-none; }
+  .panel { @apply rounded-3xl border border-ink/8 bg-washi p-5 shadow-[0_8px_30px_-12px_rgba(43,58,103,.25)]; }
+  .label { @apply text-sm font-bold text-ink/70; }
+  .hint { @apply mt-1 text-xs text-ink/55; }
+
+  /* Genkō-yōshi practice square: thin vermilion frame with dashed center guides. */
+  .genko {
+    --grid: rgba(200, 64, 46, .28);
+    @apply flex shrink-0 items-center justify-center font-jp leading-none;
+    border: 1.5px solid rgba(200, 64, 46, .45);
+    background:
+      repeating-linear-gradient(to bottom, var(--grid) 0 4px, transparent 4px 9px) center / 1px 100% no-repeat,
+      repeating-linear-gradient(to right, var(--grid) 0 4px, transparent 4px 9px) center / 100% 1px no-repeat,
+      var(--color-washi);
+  }
+}
+
+.fade-enter-active, .fade-leave-active { transition: opacity .15s ease, transform .15s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(6px); }
+
+/* Falling sakura petals on the home screen. */
+.petal { position: fixed; top: -40px; pointer-events: none; animation: petal-fall linear infinite; z-index: 0; }
+@keyframes petal-fall {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  10% { opacity: .8; }
+  100% { transform: translate(-120px, 110vh) rotate(540deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .petal { display: none; } }
