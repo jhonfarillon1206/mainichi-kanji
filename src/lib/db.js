@@ -40,6 +40,22 @@ export async function clearBackground() {
   await db.settings.delete('background')
 }
 
+// Built-in theme: 'sora' (default), 'sakura', 'matcha' or 'dusk'.
+export const THEMES = [
+  { key: 'sora', name: 'Sky', colors: ['#c9e0f7', '#f2f6fb'] },
+  { key: 'sakura', name: 'Sakura', colors: ['#f8cdd8', '#fff8f6'] },
+  { key: 'matcha', name: 'Matcha', colors: ['#cbe2c4', '#f8faf3'] },
+  { key: 'dusk', name: 'Dusk', colors: ['#a9b4e0', '#fbe6d8'] }
+]
+
+export async function getTheme() {
+  return (await db.settings.get('theme'))?.value || 'sora'
+}
+
+export async function setTheme(key) {
+  await db.settings.put({ key: 'theme', value: key })
+}
+
 // How much the picture is faded (0 = full picture, 0.85 = almost hidden). Default 0.5.
 export async function getBackgroundFade() {
   const row = await db.settings.get('backgroundFade')

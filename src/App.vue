@@ -2,12 +2,16 @@
 import { ref, watch } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
 import Overlay from './components/Overlay.vue'
-import { useLive, getBackground, getBackgroundFade } from './lib/db'
+import { useLive, getBackground, getBackgroundFade, getTheme } from './lib/db'
 
 // Custom background picture (set in Settings). Turns the stored image into a URL the page can show.
 const bgBlob = useLive(getBackground, null)
 const bgFade = useLive(getBackgroundFade, 0.5)
 const bgUrl = ref(null)
+
+// Built-in theme: sets data-theme on <html>, which switches the background colours in style.css.
+const theme = useLive(getTheme, 'sora')
+watch(theme, t => { document.documentElement.dataset.theme = t }, { immediate: true })
 watch(bgBlob, blob => {
   if (bgUrl.value) URL.revokeObjectURL(bgUrl.value)
   bgUrl.value = blob instanceof Blob ? URL.createObjectURL(blob) : null

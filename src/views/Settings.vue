@@ -1,12 +1,15 @@
 <script setup>
 import { ref, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { db, exportAll, importAll, addSampleDeck, useLive, getBackground, setBackground, clearBackground, getBackgroundFade, setBackgroundFade } from '../lib/db'
+import { db, exportAll, importAll, addSampleDeck, useLive, getBackground, setBackground, clearBackground, getBackgroundFade, setBackgroundFade, THEMES, getTheme, setTheme } from '../lib/db'
 import { toast, ask } from '../lib/ui'
 
 const router = useRouter()
 
 const fileInput = ref(null)
+
+// ---- Theme ----
+const theme = useLive(getTheme, 'sora')
 
 // ---- Background picture ----
 const bgInput = ref(null)
@@ -108,11 +111,28 @@ try { lastBackup.value = localStorage.getItem('lastBackup') } catch {}
   <div class="mx-auto max-w-xl space-y-6">
     <h1 class="legible mt-4 flex items-baseline gap-3"><span class="font-jp text-5xl font-semibold sm:text-6xl">設定</span><span class="text-lg font-bold text-ink/50">Settings</span></h1>
     <section class="panel space-y-3">
-      <h2 class="text-lg font-bold">Background</h2>
+      <h2 class="text-lg font-bold">Theme</h2>
+      <div class="grid grid-cols-4 gap-2">
+        <button
+          v-for="t in THEMES" :key="t.key"
+          class="flex flex-col items-center gap-1.5 rounded-2xl p-1.5 text-xs font-bold transition"
+          :class="theme === t.key ? 'bg-ink/8 ring-2 ring-ink' : 'text-ink/60 hover:bg-ink/5'"
+          :aria-pressed="theme === t.key"
+          @click="setTheme(t.key)"
+        >
+          <span class="h-16 w-full rounded-xl border border-ink/10" :style="{ background: `linear-gradient(180deg, ${t.colors[0]}, ${t.colors[1]})` }" />
+          {{ t.name }}
+        </button>
+      </div>
+      <p v-if="bgPreview" class="text-xs text-ink/55">Your own picture is showing on top of the theme. Remove it below to see the theme.</p>
+    </section>
+
+    <section class="panel space-y-3">
+      <h2 class="text-lg font-bold">Background picture</h2>
       <p class="text-sm text-ink/65">Use your own picture behind the app. It's saved only on this device.</p>
       <div
         class="relative h-36 overflow-hidden rounded-2xl border border-ink/10 bg-cover bg-center"
-        :style="bgPreview ? { backgroundImage: `url(${bgPreview})` } : { background: 'linear-gradient(180deg, #c9e0f7, #f2f6fb)' }"
+        :style="bgPreview ? { backgroundImage: `url(${bgPreview})` } : { background: 'linear-gradient(180deg, var(--bg-top), var(--bg-end))' }"
       >
         <div v-if="bgPreview" class="absolute inset-0" :style="{ background: `rgba(242, 246, 251, ${bgFade})` }" />
       </div>

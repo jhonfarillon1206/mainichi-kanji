@@ -15,9 +15,14 @@
 }
 
 @layer base {
+  /* Built-in themes: the page background gradient. Picked in Settings → Theme. */
+  :root { --bg-top: #c9e0f7; --bg-mid: #e3eefa; --bg-end: #f2f6fb; }
+  :root[data-theme="sakura"] { --bg-top: #f8cdd8; --bg-mid: #fce5eb; --bg-end: #fff8f6; }
+  :root[data-theme="matcha"] { --bg-top: #cbe2c4; --bg-mid: #e5f0de; --bg-end: #f8faf3; }
+  :root[data-theme="dusk"] { --bg-top: #a9b4e0; --bg-mid: #e6c3cf; --bg-end: #fbe6d8; }
   body {
     color: var(--color-ink);
-    background: linear-gradient(180deg, #c9e0f7 0px, #e3eefa 260px, #f2f6fb 560px) no-repeat, #f2f6fb;
+    background: linear-gradient(180deg, var(--bg-top) 0px, var(--bg-mid) 260px, var(--bg-end) 560px) no-repeat, var(--bg-end);
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;
   }
