@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { db, useLive, getSettings } from '../lib/db'
 import { cardStatus, isLeech, resetCard, dayKey, State } from '../lib/srs'
 import { toast, ask } from '../lib/ui'
+import { shareDeck } from '../lib/share'
 import Modal from '../components/Modal.vue'
 import CardModal from '../components/CardModal.vue'
 
@@ -76,6 +77,12 @@ async function saveDeck() {
   deckModal.value = false
   toast('Deck saved')
 }
+async function share() {
+  const result = await shareDeck(deckId)
+  if (result === 'downloaded') toast('Deck file downloaded. Send it to a friend to import.')
+  if (result === 'shared') toast('Deck shared')
+}
+
 async function deleteDeck() {
   const n = data.value.cards.length
   deckModal.value = false
@@ -196,6 +203,11 @@ function nextLabel(c) {
           <label class="label">New kanji per day</label>
           <input v-model="deckForm.newPerDay" type="number" min="0" class="input mt-1 w-28" />
           <p class="hint">Set to 0 to only review kanji you've already started.</p>
+        </div>
+        <div class="rounded-2xl bg-sora/60 p-4">
+          <div class="label">Share this deck</div>
+          <p class="hint !mt-0.5">Sends a file a friend can open with <b>Import deck</b> on their home screen. Only the cards are shared, not your progress.</p>
+          <button type="button" class="btn-ghost mt-3" :disabled="!counts.all" @click="share">Share deck</button>
         </div>
         <div class="flex items-center gap-2 border-t border-ink/8 pt-4">
           <button type="button" class="btn-danger mr-auto" @click="deleteDeck">Delete deck</button>

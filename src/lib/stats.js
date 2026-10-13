@@ -1,6 +1,20 @@
 import { db, getSettings } from './db'
 import { cardStatus, dayKey, State } from './srs'
 
+// Study streak: how many days in a row you've studied, counting back from today.
+// If you haven't studied yet today, yesterday still keeps the streak alive.
+export async function streakInfo() {
+  const s = await getSettings()
+  const now = new Date()
+  const studied = new Set(await db.logs.orderBy('dayKey').uniqueKeys())
+  const key = daysAgo => dayKey(new Date(now.getTime() - daysAgo * 86400_000), s.dayStartHour)
+
+  const studiedToday = studied.has(key(0))
+  let streak = 0
+  for (let i = studiedToday ? 0 : 1; studied.has(key(i)); i++) streak++
+  return { streak, studiedToday }
+}
+
 // One row per deck for the home screen.
 export async function deckSummaries() {
   const s = await getSettings()

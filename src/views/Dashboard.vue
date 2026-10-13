@@ -2,12 +2,30 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLive, addSampleDeck } from '../lib/db'
-import { deckSummaries } from '../lib/stats'
+import { deckSummaries, streakInfo } from '../lib/stats'
+import { importDeck } from '../lib/share'
+import { toast } from '../lib/ui'
 import NewDeckModal from '../components/NewDeckModal.vue'
 
 const router = useRouter()
 const decks = useLive(deckSummaries, null)
 const showNewDeck = ref(false)
+const streak = useLive(streakInfo, { streak: 0, studiedToday: false })
+
+// ---- Import a deck a friend shared ----
+const importInput = ref(null)
+async function onImport(e) {
+  const file = e.target.files[0]
+  e.target.value = ''
+  if (!file) return
+  try {
+    const { id, name, count } = await importDeck(file)
+    toast(`Added "${name}" with ${count} cards`)
+    router.push(`/deck/${id}`)
+  } catch (err) {
+    toast(err.message, { timeout: 6000 })
+  }
+}
 
 async function trySample() {
   const id = await addSampleDeck()
@@ -34,15 +52,33 @@ const petals = [
   </div>
 
   <NewDeckModal :open="showNewDeck" @close="showNewDeck = false" />
+  <input ref="importInput" type="file" accept="application/json,.json" class="hidden" @change="onImport" />
 
   <template v-if="decks">
     <!-- Title -->
     <section class="mb-6 mt-4 flex flex-wrap items-end gap-4">
-      <h1 class="legible mr-auto flex items-baseline gap-3">
-        <span class="font-jp text-5xl font-semibold sm:text-6xl">デッキ</span>
-        <span class="text-lg font-bold text-ink/50">My decks</span>
-      </h1>
-      <button v-if="decks.length" class="btn-primary" @click="showNewDeck = true">+ New deck</button>
+      <div class="mr-auto">
+        <h1 class="legible flex items-baseline gap-3">
+          <span class="font-jp text-5xl font-semibold sm:text-6xl">デッキ</span>
+          <span class="text-lg font-bold text-ink/50">My decks</span>
+        </h1>
+        <!-- Streak -->
+        <div
+          class="mt-3 inline-flex items-center gap-2 rounded-full border border-ink/10 bg-white/75 px-3 py-1.5 text-sm backdrop-blur-sm"
+          :title="streak.streak ? `You've studied ${streak.streak} day${streak.streak === 1 ? '' : 's'} in a row` : 'Study any deck to start a streak'"
+        >
+          <span :class="streak.streak ? '' : 'grayscale opacity-50'">🔥</span>
+          <template v-if="streak.streak">
+            <span class="font-extrabold">{{ streak.streak }}-day streak</span>
+            <span v-if="!streak.studiedToday" class="text-ink/55">· study today to keep it</span>
+          </template>
+          <span v-else class="font-bold text-ink/60">Study today to start a streak</span>
+        </div>
+      </div>
+      <div v-if="decks.length" class="flex gap-2">
+        <button class="btn-ghost" @click="importInput.click()">Import deck</button>
+        <button class="btn-primary" @click="showNewDeck = true">+ New deck</button>
+      </div>
     </section>
 
     <!-- No decks yet -->
@@ -54,6 +90,7 @@ const petals = [
         <button class="btn-primary px-7 py-3 text-base" @click="showNewDeck = true">Create a deck</button>
         <button class="btn-ghost px-7 py-3 text-base" @click="trySample">Try a sample deck</button>
       </div>
+      <button class="mt-4 text-sm font-bold text-ink/55 underline hover:text-ink" @click="importInput.click()">Import a deck from a friend</button>
     </section>
 
     <!-- Deck list -->
