@@ -27,6 +27,19 @@ export async function saveSettings(value) {
   await db.settings.put({ key: 'main', value: { ...value } })
 }
 
+// Custom background picture, stored as an image file on this device only.
+export async function getBackground() {
+  return (await db.settings.get('background'))?.value || null
+}
+
+export async function setBackground(blob) {
+  await db.settings.put({ key: 'background', value: blob })
+}
+
+export async function clearBackground() {
+  await db.settings.delete('background')
+}
+
 // Reactive Dexie query: re-runs whenever the tables it reads change.
 export function useLive(querier, initial) {
   const value = ref(initial)
@@ -86,7 +99,8 @@ export async function addSampleDeck() {
 
 export async function exportAll() {
   const [decks, cards, logs, settings] = await Promise.all([
-    db.decks.toArray(), db.cards.toArray(), db.logs.toArray(), db.settings.toArray()
+    db.decks.toArray(), db.cards.toArray(), db.logs.toArray(),
+    db.settings.where('key').notEqual('background').toArray() // the picture stays on this device
   ])
   return { app: 'kanji-deck', version: 1, exportedAt: new Date(), decks, cards, logs, settings }
 }
@@ -99,10 +113,10 @@ export async function importAll(data) {
   }))
   const logs = data.logs.map(l => ({ ...l, reviewedAt: toDate(l.reviewedAt) }))
   await db.transaction('rw', db.decks, db.cards, db.logs, db.settings, async () => {
-    await Promise.all([db.decks.clear(), db.cards.clear(), db.logs.clear(), db.settings.clear()])
+    await Promise.all([db.decks.clear(), db.cards.clear(), db.logs.clear(), db.settings.where('key').notEqual('background').delete()])
     await db.decks.bulkAdd(data.decks)
     await db.cards.bulkAdd(cards)
     await db.logs.bulkAdd(logs)
-    await db.settings.bulkAdd(data.settings)
+    await db.settings.bulkPut(data.settings.filter(r => r.key !== 'background'))
   })
 }
