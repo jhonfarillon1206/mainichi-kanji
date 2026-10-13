@@ -40,6 +40,16 @@ export async function clearBackground() {
   await db.settings.delete('background')
 }
 
+// How much the picture is faded (0 = full picture, 0.85 = almost hidden). Default 0.5.
+export async function getBackgroundFade() {
+  const row = await db.settings.get('backgroundFade')
+  return typeof row?.value === 'number' ? row.value : 0.5
+}
+
+export async function setBackgroundFade(value) {
+  await db.settings.put({ key: 'backgroundFade', value })
+}
+
 // Reactive Dexie query: re-runs whenever the tables it reads change.
 export function useLive(querier, initial) {
   const value = ref(initial)

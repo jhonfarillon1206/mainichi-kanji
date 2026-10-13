@@ -2,10 +2,11 @@
 import { ref, watch } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
 import Overlay from './components/Overlay.vue'
-import { useLive, getBackground } from './lib/db'
+import { useLive, getBackground, getBackgroundFade } from './lib/db'
 
 // Custom background picture (set in Settings). Turns the stored image into a URL the page can show.
 const bgBlob = useLive(getBackground, null)
+const bgFade = useLive(getBackgroundFade, 0.5)
 const bgUrl = ref(null)
 watch(bgBlob, blob => {
   if (bgUrl.value) URL.revokeObjectURL(bgUrl.value)
@@ -17,12 +18,12 @@ watch(bgBlob, blob => {
   <!-- Custom background with a soft light layer so text stays readable -->
   <template v-if="bgUrl">
     <div class="fixed inset-0 -z-10 bg-cover bg-center" :style="{ backgroundImage: `url(${bgUrl})` }" />
-    <div class="fixed inset-0 -z-10 bg-gradient-to-b from-white/45 via-white/55 to-white/70" />
+    <div class="fixed inset-0 -z-10" :style="{ background: `rgba(242, 246, 251, ${bgFade})` }" />
   </template>
 
-  <header class="relative z-30">
+  <header class="relative z-30" :class="bgUrl && 'on-picture'">
     <nav class="mx-auto flex max-w-5xl items-center gap-1 px-4 py-4">
-      <RouterLink to="/" class="mr-auto flex items-center gap-2.5">
+      <RouterLink to="/" class="legible mr-auto flex items-center gap-2.5">
         <svg viewBox="0 0 40 40" class="h-9 w-9" aria-hidden="true">
           <g transform="translate(20 20)">
             <path v-for="r in [0, 72, 144, 216, 288]" :key="r" :transform="`rotate(${r})`"
@@ -35,11 +36,11 @@ watch(bgBlob, blob => {
           <span class="block text-[11px] font-medium text-ink/55">Mainichi Kanji</span>
         </span>
       </RouterLink>
-      <RouterLink to="/" class="rounded-full px-4 py-2 text-sm font-bold text-ink/60 hover:text-ink" exact-active-class="!text-ink bg-white/70">Decks</RouterLink>
-      <RouterLink to="/settings" class="rounded-full px-4 py-2 text-sm font-bold text-ink/60 hover:text-ink" active-class="!text-ink bg-white/70">Settings</RouterLink>
+      <RouterLink to="/" class="glass rounded-full px-4 py-2 text-sm font-bold text-ink/70 hover:text-ink" exact-active-class="!text-ink bg-white/70">Decks</RouterLink>
+      <RouterLink to="/settings" class="glass rounded-full px-4 py-2 text-sm font-bold text-ink/70 hover:text-ink" active-class="!text-ink bg-white/70">Settings</RouterLink>
     </nav>
   </header>
-  <main class="relative z-10 mx-auto max-w-5xl px-4 pb-24 pt-2">
+  <main class="relative z-10 mx-auto max-w-5xl px-4 pb-24 pt-2" :class="bgUrl && 'on-picture'">
     <RouterView :key="$route.fullPath" />
   </main>
   <Overlay />

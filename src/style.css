@@ -62,3 +62,8 @@
   100% { transform: translate(-120px, 110vh) rotate(540deg); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .petal { display: none; } }
+
+/* Text sitting directly on a custom background picture gets a soft glow so it stays readable. */
+.on-picture .legible, .on-picture .legible * { color: var(--color-ink) !important; }
+.on-picture .legible { text-shadow: 0 0 2px #fff, 0 0 6px rgba(255,255,255,.95), 0 0 16px rgba(255,255,255,.8); }
+.on-picture .glass { background: rgba(255,255,255,.7); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }

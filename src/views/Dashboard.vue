@@ -38,7 +38,7 @@ const petals = [
   <template v-if="decks">
     <!-- Title -->
     <section class="mb-6 mt-4 flex flex-wrap items-end gap-4">
-      <h1 class="mr-auto flex items-baseline gap-3">
+      <h1 class="legible mr-auto flex items-baseline gap-3">
         <span class="font-jp text-5xl font-semibold sm:text-6xl">デッキ</span>
         <span class="text-lg font-bold text-ink/50">My decks</span>
       </h1>
@@ -81,7 +81,7 @@ const petals = [
       </li>
 
       <li>
-        <button class="flex h-full min-h-28 w-full items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-ink/20 p-4 font-bold text-ink/55 transition hover:border-sakura hover:bg-white/50 hover:text-ink" @click="showNewDeck = true">
+        <button class="glass flex h-full min-h-28 w-full items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-ink/25 p-4 font-bold text-ink/55 transition hover:border-sakura hover:bg-white/50 hover:text-ink" @click="showNewDeck = true">
           <span class="text-2xl leading-none">+</span> New deck
         </button>
       </li>

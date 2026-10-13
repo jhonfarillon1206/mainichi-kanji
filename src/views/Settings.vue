@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { db, exportAll, importAll, addSampleDeck, useLive, getBackground, setBackground, clearBackground } from '../lib/db'
+import { db, exportAll, importAll, addSampleDeck, useLive, getBackground, setBackground, clearBackground, getBackgroundFade, setBackgroundFade } from '../lib/db'
 import { toast, ask } from '../lib/ui'
 
 const router = useRouter()
@@ -12,6 +12,9 @@ const fileInput = ref(null)
 const bgInput = ref(null)
 const bgBlob = useLive(getBackground, null)
 const bgPreview = ref(null)
+const bgFade = useLive(getBackgroundFade, 0.5)
+// Saved as you drag the slider.
+function changeFade(e) { setBackgroundFade(Number(e.target.value) / 100) }
 watch(bgBlob, blob => {
   if (bgPreview.value) URL.revokeObjectURL(bgPreview.value)
   bgPreview.value = blob instanceof Blob ? URL.createObjectURL(blob) : null
@@ -103,14 +106,21 @@ try { lastBackup.value = localStorage.getItem('lastBackup') } catch {}
 
 <template>
   <div class="mx-auto max-w-xl space-y-6">
-    <h1 class="mt-4 flex items-baseline gap-3"><span class="font-jp text-5xl font-semibold sm:text-6xl">設定</span><span class="text-lg font-bold text-ink/50">Settings</span></h1>
+    <h1 class="legible mt-4 flex items-baseline gap-3"><span class="font-jp text-5xl font-semibold sm:text-6xl">設定</span><span class="text-lg font-bold text-ink/50">Settings</span></h1>
     <section class="panel space-y-3">
       <h2 class="text-lg font-bold">Background</h2>
       <p class="text-sm text-ink/65">Use your own picture behind the app. It's saved only on this device.</p>
       <div
-        class="h-36 rounded-2xl border border-ink/10 bg-cover bg-center"
+        class="relative h-36 overflow-hidden rounded-2xl border border-ink/10 bg-cover bg-center"
         :style="bgPreview ? { backgroundImage: `url(${bgPreview})` } : { background: 'linear-gradient(180deg, #c9e0f7, #f2f6fb)' }"
-      />
+      >
+        <div v-if="bgPreview" class="absolute inset-0" :style="{ background: `rgba(242, 246, 251, ${bgFade})` }" />
+      </div>
+      <label v-if="bgPreview" class="block">
+        <span class="flex justify-between text-sm font-bold text-ink/70">Picture fade <span class="font-medium text-ink/50">{{ Math.round(bgFade * 100) }}%</span></span>
+        <input type="range" min="0" max="85" step="5" :value="Math.round(bgFade * 100)" class="mt-2 w-full accent-[#2b3a67]" @input="changeFade" />
+        <span class="flex justify-between text-xs text-ink/45"><span>Clear picture</span><span>Soft, easier to read</span></span>
+      </label>
       <div class="flex flex-wrap gap-2">
         <button class="btn-primary" @click="bgInput.click()">{{ bgPreview ? 'Change picture' : 'Choose picture' }}</button>
         <button v-if="bgPreview" class="btn-ghost" @click="removeBackground">Remove</button>
