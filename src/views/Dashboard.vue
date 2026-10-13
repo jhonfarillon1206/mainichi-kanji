@@ -58,8 +58,8 @@ const petals = [
 
     <!-- Deck list -->
     <ul v-else class="grid gap-4 sm:grid-cols-2">
-      <li v-for="d in decks" :key="d.id" class="panel relative flex items-center gap-4 !p-4 transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_-14px_rgba(43,58,103,.35)]">
-        <div class="genko h-20 w-20 rounded-md text-5xl">{{ d.symbol }}</div>
+      <li v-for="d in decks" :key="d.id" class="panel relative flex min-w-0 items-center gap-3 sm:gap-4 !p-4 transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_-14px_rgba(43,58,103,.35)]">
+        <div class="genko h-16 w-16 rounded-md text-4xl sm:h-20 sm:w-20 sm:text-5xl">{{ d.symbol }}</div>
 
         <div class="min-w-0 flex-1">
           <RouterLink :to="`/deck/${d.id}`" class="block truncate text-lg font-bold after:absolute after:inset-0 after:content-['']">{{ d.name }}</RouterLink>
@@ -75,9 +75,9 @@ const petals = [
           Study <span class="rounded-full bg-sakura px-1.5 text-xs text-ink">{{ d.waiting }}</span>
         </RouterLink>
         <RouterLink v-else-if="!d.total" :to="`/deck/${d.id}?add=1`" class="btn-ghost relative z-10 shrink-0 !px-4">Add kanji</RouterLink>
-        <span v-else class="relative flex shrink-0 items-center gap-1.5 text-sm font-bold text-shu" title="Nothing left to study today">
-          <span class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-shu/60 font-jp">済</span> Done
-        </span>
+        <RouterLink v-else :to="`/study/${d.id}?mode=all`" class="btn-ghost relative z-10 shrink-0 whitespace-nowrap !px-4" title="Done for today. Tap to go through all cards again.">
+          Practice
+        </RouterLink>
       </li>
 
       <li>

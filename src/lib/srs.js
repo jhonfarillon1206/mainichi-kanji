@@ -74,6 +74,17 @@ export async function buildQueue(deckId, mode) {
   const deckMap = Object.fromEntries(decks.map(d => [d.id, d]))
 
   const active = cards.filter(c => !c.suspended)
+
+  // All cards: every card in the deck, shuffled, with no daily limits.
+  if (mode === 'all') {
+    const all = [...active]
+    for (let i = all.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[all[i], all[j]] = [all[j], all[i]]
+    }
+    return all
+  }
+
   const due = active
     .filter(c => c.state !== State.New && c.due <= now)
     .sort((a, b) => a.due - b.due)

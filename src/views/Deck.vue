@@ -220,7 +220,7 @@ function nextLabel(c) {
       <button class="btn-ghost" title="Deck settings" @click="openDeckSettings">⚙ Settings</button>
       <button class="btn-ghost" @click="openAdd">+ Add kanji</button>
       <RouterLink v-if="waiting" :to="`/study/${deckId}?mode=mixed`" class="btn-primary">Study {{ waiting }}</RouterLink>
-      <span v-else-if="counts.all" class="flex items-center gap-1.5 px-2 text-sm font-bold text-shu"><span class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-shu/60 font-jp">済</span> Done for today</span>
+      <RouterLink v-if="counts.all" :to="`/study/${deckId}?mode=all`" :class="waiting ? 'btn-ghost' : 'btn-primary'">Practice all {{ counts.all - counts.suspended }}</RouterLink>
     </section>
 
     <!-- Empty -->
