@@ -50,6 +50,8 @@ const newLeft = computed(() => {
   return Math.max(0, Math.min((data.value.deck.newPerDay ?? 10) - data.value.newDoneToday, counts.value.new))
 })
 const waiting = computed(() => counts.value.due + newLeft.value)
+// Existing folder names, suggested while typing.
+const folders = computed(() => [...new Set((data.value?.decks || []).map(d => d.folder).filter(Boolean))].sort())
 // Quiz on meanings when the deck has them (e.g. vocab), otherwise on readings (e.g. Hiragana).
 const quizField = computed(() => (data.value?.cards.filter(c => (c.meaning || '').trim()).length >= 4 ? 'meaning' : 'reading'))
 const symbol = computed(() => data.value?.deck?.symbol || [...(data.value?.cards || [])].sort((a, b) => a.id - b.id)[0]?.front?.[0] || '字')
@@ -66,16 +68,17 @@ function closeCardModal() {
 
 // ---- Deck settings ----
 const deckModal = ref(false)
-const deckForm = reactive({ name: '', newPerDay: 10, symbol: '' })
+const deckForm = reactive({ name: '', newPerDay: 10, symbol: '', folder: '' })
 function openDeckSettings() {
   deckForm.name = data.value.deck.name
   deckForm.newPerDay = data.value.deck.newPerDay ?? 10
   deckForm.symbol = data.value.deck.symbol || ''
+  deckForm.folder = data.value.deck.folder || ''
   deckModal.value = true
 }
 async function saveDeck() {
   if (!deckForm.name.trim()) return
-  await db.decks.update(deckId, { name: deckForm.name.trim(), symbol: deckForm.symbol.trim().slice(0, 1), newPerDay: Number(deckForm.newPerDay) || 0 })
+  await db.decks.update(deckId, { name: deckForm.name.trim(), symbol: deckForm.symbol.trim().slice(0, 1), folder: deckForm.folder.trim(), newPerDay: Number(deckForm.newPerDay) || 0 })
   deckModal.value = false
   toast('Deck saved')
 }
@@ -193,6 +196,12 @@ function nextLabel(c) {
         <div>
           <label class="label">Deck name</label>
           <input v-model="deckForm.name" class="input mt-1" />
+        </div>
+        <div>
+          <label class="label">Folder <span class="font-normal text-ink/45">(optional)</span></label>
+          <input v-model="deckForm.folder" list="folder-list" class="input mt-1" placeholder="e.g. N5" />
+          <datalist id="folder-list"><option v-for="f in folders" :key="f" :value="f" /></datalist>
+          <p class="hint">Decks with the same folder are grouped together on the home screen. Leave empty for no folder.</p>
         </div>
         <div class="flex items-center gap-4">
           <input v-model="deckForm.symbol" maxlength="2" class="genko h-16 w-16 rounded-md text-center text-4xl focus:outline-none focus:ring-4 focus:ring-sakura/30" :placeholder="symbol" />

@@ -11,6 +11,8 @@ const router = useRouter()
 const name = ref('')
 const newPerDay = ref(10)
 const symbol = ref('')
+const folder = ref('')
+const folders = ref([])
 const error = ref('')
 const input = ref(null)
 
@@ -19,6 +21,8 @@ watch(() => props.open, async v => {
   name.value = ''
   newPerDay.value = 10
   symbol.value = ''
+  folder.value = ''
+  folders.value = [...new Set((await db.decks.toArray()).map(d => d.folder).filter(Boolean))].sort()
   error.value = ''
   await nextTick()
   input.value?.focus()
@@ -26,7 +30,7 @@ watch(() => props.open, async v => {
 
 async function create() {
   if (!name.value.trim()) { error.value = 'Give the deck a name.'; return }
-  const id = await db.decks.add({ name: name.value.trim(), symbol: symbol.value.trim().slice(0, 1), newPerDay: Number(newPerDay.value) || 10, createdAt: new Date() })
+  const id = await db.decks.add({ name: name.value.trim(), symbol: symbol.value.trim().slice(0, 1), folder: folder.value.trim(), newPerDay: Number(newPerDay.value) || 10, createdAt: new Date() })
   emit('close')
   router.push(`/deck/${id}?add=1`)
 }
@@ -45,6 +49,12 @@ const suggestions = ['N5 Kanji', 'N4 Kanji', 'Weekly words', 'Hard ones']
         <div class="mt-2 flex flex-wrap gap-1">
           <button v-for="s in suggestions" :key="s" type="button" class="rounded-full bg-sora px-3 py-1 text-xs font-medium text-ink/75 hover:bg-sakura-soft" @click="name = s">{{ s }}</button>
         </div>
+      </div>
+      <div>
+        <label class="label">Folder <span class="font-normal text-ink/45">(optional)</span></label>
+        <input v-model="folder" list="folder-list" class="input mt-1" placeholder="e.g. N5" />
+        <datalist id="folder-list"><option v-for="f in folders" :key="f" :value="f" /></datalist>
+        <p class="hint">Decks with the same folder are grouped together on the home screen. Leave empty for no folder.</p>
       </div>
       <div class="flex items-center gap-4">
         <input v-model="symbol" maxlength="2" class="genko h-16 w-16 rounded-md text-center text-4xl focus:outline-none focus:ring-4 focus:ring-sakura/30" placeholder="字" />

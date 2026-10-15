@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLive, addSampleDeck } from '../lib/db'
 import { deckSummaries, streakInfo } from '../lib/stats'
@@ -33,6 +33,36 @@ async function trySample() {
 }
 
 const pct = d => (d.total ? Math.round((d.mastered / d.total) * 100) : 0)
+
+// ---- Folders: decks with the same folder name are grouped ----
+const groups = computed(() => {
+  if (!decks.value) return []
+  const byFolder = {}
+  for (const d of decks.value) (byFolder[d.folder || ''] ||= []).push(d)
+  const named = Object.keys(byFolder).filter(Boolean).sort((a, b) => a.localeCompare(b))
+  const out = named.map(name => {
+    const list = byFolder[name]
+    return {
+      name,
+      decks: list,
+      cards: list.reduce((n, d) => n + d.total, 0),
+      waiting: list.reduce((n, d) => n + d.waiting, 0)
+    }
+  })
+  if (byFolder['']) out.push({ name: '', decks: byFolder[''] })
+  return out
+})
+
+// Which folders are closed. Remembered on this device.
+let savedClosed = []
+try { savedClosed = JSON.parse(localStorage.getItem('closedFolders') || '[]') } catch {}
+const closed = ref(new Set(savedClosed))
+function toggleFolder(name) {
+  const next = new Set(closed.value)
+  next.has(name) ? next.delete(name) : next.add(name)
+  closed.value = next
+  try { localStorage.setItem('closedFolders', JSON.stringify([...next])) } catch {}
+}
 
 const petals = [
   { left: '8%', size: 14, dur: 17, delay: 0 },
@@ -93,35 +123,55 @@ const petals = [
       <button class="mt-4 text-sm font-bold text-ink/55 underline hover:text-ink" @click="importInput.click()">Import a deck from a friend</button>
     </section>
 
-    <!-- Deck list -->
-    <ul v-else class="grid gap-4 sm:grid-cols-2">
-      <li v-for="d in decks" :key="d.id" class="panel relative flex min-w-0 items-center gap-3 sm:gap-4 !p-4 transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_-14px_rgba(43,58,103,.35)]">
-        <div class="genko h-16 w-16 rounded-md text-4xl sm:h-20 sm:w-20 sm:text-5xl">{{ d.symbol }}</div>
-
-        <div class="min-w-0 flex-1">
-          <RouterLink :to="`/deck/${d.id}`" class="block truncate text-lg font-bold after:absolute after:inset-0 after:content-['']">{{ d.name }}</RouterLink>
-          <p class="text-sm text-ink/60">
-            {{ d.total }} {{ d.total === 1 ? 'card' : 'cards' }}<template v-if="d.total">, {{ d.mastered }} mastered</template>
-          </p>
-          <div v-if="d.total" class="mt-2 h-1.5 overflow-hidden rounded-full bg-ink/8" :title="`${pct(d)}% mastered`">
-            <div class="h-full rounded-full bg-matcha" :style="{ width: pct(d) + '%' }" />
-          </div>
-        </div>
-
-        <RouterLink v-if="d.waiting" :to="`/study/${d.id}?mode=mixed`" class="btn-primary relative z-10 shrink-0 !px-4">
-          Study <span class="rounded-full bg-sakura px-1.5 text-xs text-ink">{{ d.waiting }}</span>
-        </RouterLink>
-        <RouterLink v-else-if="!d.total" :to="`/deck/${d.id}?add=1`" class="btn-ghost relative z-10 shrink-0 !px-4">Add kanji</RouterLink>
-        <RouterLink v-else :to="`/study/${d.id}?mode=all`" class="btn-ghost relative z-10 shrink-0 whitespace-nowrap !px-4" title="Done for today. Tap to go through all cards again.">
-          Practice
-        </RouterLink>
-      </li>
-
-      <li>
-        <button class="glass flex h-full min-h-28 w-full items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-ink/25 p-4 font-bold text-ink/55 transition hover:border-sakura hover:bg-white/50 hover:text-ink" @click="showNewDeck = true">
-          <span class="text-2xl leading-none">+</span> New deck
+    <!-- Deck list, grouped by folder -->
+    <div v-else class="space-y-6">
+      <section v-for="g in groups" :key="g.name || '__none'">
+        <!-- Folder header (decks without a folder have none) -->
+        <button
+          v-if="g.name"
+          class="glass mb-3 flex w-full items-center gap-3 rounded-2xl border border-ink/10 bg-white/55 px-4 py-3 text-left transition hover:bg-white/80"
+          :aria-expanded="!closed.has(g.name)"
+          @click="toggleFolder(g.name)"
+        >
+          <span class="text-lg transition" :class="closed.has(g.name) ? '' : 'rotate-90'">▸</span>
+          <span class="text-xl" aria-hidden="true">{{ closed.has(g.name) ? '📁' : '📂' }}</span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate font-extrabold">{{ g.name }}</span>
+            <span class="block text-xs text-ink/55">{{ g.decks.length }} {{ g.decks.length === 1 ? 'deck' : 'decks' }}, {{ g.cards }} cards</span>
+          </span>
+          <span v-if="g.waiting" class="rounded-full bg-sakura px-2 py-0.5 text-xs font-bold text-ink">{{ g.waiting }} to study</span>
         </button>
-      </li>
-    </ul>
+        <h2 v-else-if="groups.length > 1" class="legible mb-3 px-1 text-sm font-bold text-ink/55">Other decks</h2>
+
+        <ul v-show="!g.name || !closed.has(g.name)" class="grid gap-4 sm:grid-cols-2" :class="g.name && 'border-l-2 border-ink/10 pl-3 sm:pl-4'">
+          <li v-for="d in g.decks" :key="d.id" class="panel relative flex min-w-0 items-center gap-3 sm:gap-4 !p-4 transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_-14px_rgba(43,58,103,.35)]">
+            <div class="genko h-16 w-16 rounded-md text-4xl sm:h-20 sm:w-20 sm:text-5xl">{{ d.symbol }}</div>
+
+            <div class="min-w-0 flex-1">
+              <RouterLink :to="`/deck/${d.id}`" class="block truncate text-lg font-bold after:absolute after:inset-0 after:content-['']">{{ d.name }}</RouterLink>
+              <p class="text-sm text-ink/60">
+                {{ d.total }} {{ d.total === 1 ? 'card' : 'cards' }}<template v-if="d.total">, {{ d.mastered }} mastered</template>
+              </p>
+              <div v-if="d.total" class="mt-2 h-1.5 overflow-hidden rounded-full bg-ink/8" :title="`${pct(d)}% mastered`">
+                <div class="h-full rounded-full bg-matcha" :style="{ width: pct(d) + '%' }" />
+              </div>
+            </div>
+
+            <RouterLink v-if="d.waiting" :to="`/study/${d.id}?mode=mixed`" class="btn-primary relative z-10 shrink-0 !px-4">
+              Study <span class="rounded-full bg-sakura px-1.5 text-xs text-ink">{{ d.waiting }}</span>
+            </RouterLink>
+            <RouterLink v-else-if="!d.total" :to="`/deck/${d.id}?add=1`" class="btn-ghost relative z-10 shrink-0 !px-4">Add kanji</RouterLink>
+            <RouterLink v-else :to="`/study/${d.id}?mode=all`" class="btn-ghost relative z-10 shrink-0 whitespace-nowrap !px-4" title="Done for today. Tap to go through all cards again.">
+              Practice
+            </RouterLink>
+          </li>
+        </ul>
+      </section>
+
+      <button class="glass flex min-h-24 w-full items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-ink/25 p-4 font-bold text-ink/55 transition hover:border-sakura hover:bg-white/50 hover:text-ink sm:w-[calc(50%-0.5rem)]" @click="showNewDeck = true">
+        <span class="text-2xl leading-none">+</span> New deck
+      </button>
+      <p v-if="!groups.some(g => g.name) && decks.length > 1" class="legible px-1 text-xs text-ink/50">Tip: group decks into folders from a deck's ⚙ Settings → Folder.</p>
+    </div>
   </template>
 </template>
