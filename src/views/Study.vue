@@ -1,7 +1,9 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, toRaw } from 'vue'
 import { useRoute } from 'vue-router'
-import { db } from '../lib/db'
+import { db, useLive } from '../lib/db'
+import { laterInfo, toggleLater } from '../lib/studyLater'
+import { toast } from '../lib/ui'
 import { buildQueue, gradeCard, undoGrade, shuffle, inOrder, Rating, State } from '../lib/srs'
 import CardModal from '../components/CardModal.vue'
 
@@ -19,6 +21,17 @@ const history = [] // back stack (plain array, kept out of Vue reactivity so Ind
 const backCount = ref(0)
 const nextDue = ref(null)
 const editing = ref(false)
+
+// ---- Study later: copy the current card into the Study later deck ----
+const later = useLive(laterInfo, { id: null, fronts: new Set() })
+const isSaved = computed(() => !!current.value && later.value.fronts.has(current.value.front))
+// Hidden while studying the Study later deck itself (remove cards there from the deck page).
+const showLater = computed(() => !!current.value && current.value.deckId !== later.value.id)
+async function saveForLater() {
+  if (!current.value) return
+  const saved = await toggleLater(toRaw(current.value))
+  toast(saved ? `${current.value.front} saved to Study later` : `${current.value.front} removed from Study later`)
+}
 
 // Shuffle preference, remembered on this device.
 let saved = false
@@ -145,6 +158,7 @@ async function afterEdit() {
 function onKey(e) {
   if (editing.value || e.target.matches('input, textarea, select')) return
   if (e.key === 'ArrowLeft') { back(); return }
+  if ((e.key === 'l' || e.key === 'L') && showLater.value) { saveForLater(); return }
   if ((e.key === 'p' || e.key === 'P') && revealed.value) { speak(); return }
   if (e.code === 'Space' || e.key === 'Enter' || e.key === 'ArrowRight') {
     e.preventDefault()
@@ -233,7 +247,17 @@ const againLink = () => `/study/${route.params.id}?mode=all&t=${Date.now()}`
           @click="!revealed && (revealed = true)"
         >
           <span class="absolute left-4 top-4 rounded-full px-2.5 py-0.5 text-xs font-bold" :class="kind.cls">{{ kind.label }}</span>
-          <button class="absolute right-3 top-3 rounded-lg px-2 py-1 text-xs text-ink/40 hover:bg-sora hover:text-ink" @click.stop="editing = true">Edit</button>
+          <div class="absolute right-3 top-3 flex items-center gap-1">
+            <button
+              v-if="showLater"
+              class="rounded-full px-2.5 py-1 text-xs font-bold transition"
+              :class="isSaved ? 'bg-sakura text-ink' : 'text-ink/45 hover:bg-sora hover:text-ink'"
+              :aria-pressed="isSaved"
+              :title="isSaved ? 'Remove from Study later' : 'Copy to the Study later deck (L)'"
+              @click.stop="saveForLater"
+            >🔖 {{ isSaved ? 'Saved' : 'Study later' }}</button>
+            <button class="rounded-lg px-2 py-1 text-xs text-ink/40 hover:bg-sora hover:text-ink" @click.stop="editing = true">Edit</button>
+          </div>
 
           <div class="genko h-44 w-44 rounded-xl sm:h-52 sm:w-52" :class="current.front.length > 2 ? 'text-5xl' : current.front.length > 1 ? 'text-7xl sm:text-8xl' : 'text-9xl sm:text-[9rem]'">{{ current.front }}</div>
 
@@ -267,7 +291,7 @@ const againLink = () => `/study/${route.params.id}?mode=all&t=${Date.now()}`
           <button v-else class="btn-primary py-4 text-base" :disabled="busy" @click="next">Next →</button>
         </div>
 
-        <p class="mt-3 hidden text-center text-xs text-ink/40 sm:block">Space or → : show / next · ← : back · P : play sound</p>
+        <p class="mt-3 hidden text-center text-xs text-ink/40 sm:block">Space or → : show / next · ← : back · P : play sound · L : study later</p>
       </div>
     </template>
   </div>

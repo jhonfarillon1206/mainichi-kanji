@@ -2,6 +2,8 @@
 import { ref, computed, onMounted, onUnmounted, toRaw } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../lib/db'
+import { addManyToLater } from '../lib/studyLater'
+import { toast } from '../lib/ui'
 import { gradeCard, shuffle, Rating } from '../lib/srs'
 
 const route = useRoute()
@@ -89,6 +91,14 @@ function optionClass(option) {
 const link = q => `/quiz/${deckId}?` + new URLSearchParams({ ask: field, n: String(length), ...q, t: Date.now() })
 const retryLink = computed(() => link({ ids: missed.value.map(r => r.card.id).join('.') }))
 const lengths = [10, 20, 'all']
+
+// Copy every missed card into the Study later deck.
+const savedMissed = ref(false)
+async function saveMissed() {
+  const { added } = await addManyToLater(missed.value.map(r => toRaw(r.card)))
+  savedMissed.value = true
+  toast(added ? `${added} saved to Study later` : 'Already in Study later')
+}
 const percent = computed(() => (results.value.length ? Math.round((score.value / results.value.length) * 100) : 0))
 const verdict = computed(() => (percent.value === 100 ? '満点' : percent.value >= 80 ? '良' : percent.value >= 50 ? '可' : '練'))
 </script>
@@ -145,6 +155,9 @@ const verdict = computed(() => (percent.value === 100 ? '満点' : percent.value
           </ul>
         </div>
         <p v-else class="mt-4 text-sm text-matcha">Perfect score. 全問正解！</p>
+        <button v-if="missed.length && deck && !deck.isLater" class="btn-ghost mt-4" :disabled="savedMissed" @click="saveMissed">
+          🔖 {{ savedMissed ? 'Saved to Study later' : `Save ${missed.length} missed to Study later` }}
+        </button>
 
         <div class="mt-6 flex flex-wrap justify-center gap-2">
           <RouterLink :to="`/deck/${deckId}`" class="btn-ghost">Back to deck</RouterLink>
