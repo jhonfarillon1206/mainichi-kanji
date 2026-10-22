@@ -11,6 +11,11 @@ db.version(1).stores({
   settings: 'key'
 })
 
+// v2: reading practice stories (pasted in the Reading tab).
+db.version(2).stores({
+  stories: '++id, level'
+})
+
 export const DEFAULT_SETTINGS = {
   dayStartHour: 4,       // a "day" rolls over at 4 AM, like Anki
   reviewCap: 200,        // max reviews per session
@@ -124,11 +129,12 @@ export async function addSampleDeck() {
 }
 
 export async function exportAll() {
-  const [decks, cards, logs, settings] = await Promise.all([
+  const [decks, cards, logs, settings, stories] = await Promise.all([
     db.decks.toArray(), db.cards.toArray(), db.logs.toArray(),
-    db.settings.where('key').notEqual('background').toArray() // the picture stays on this device
+    db.settings.where('key').notEqual('background').toArray(), // the picture stays on this device
+    db.stories.toArray()
   ])
-  return { app: 'kanji-deck', version: 1, exportedAt: new Date(), decks, cards, logs, settings }
+  return { app: 'kanji-deck', version: 2, exportedAt: new Date(), decks, cards, logs, settings, stories }
 }
 
 export async function importAll(data) {
@@ -138,8 +144,13 @@ export async function importAll(data) {
     ...c, due: toDate(c.due), last_review: toDate(c.last_review), createdAt: toDate(c.createdAt)
   }))
   const logs = data.logs.map(l => ({ ...l, reviewedAt: toDate(l.reviewedAt) }))
-  await db.transaction('rw', db.decks, db.cards, db.logs, db.settings, async () => {
+  await db.transaction('rw', db.decks, db.cards, db.logs, db.settings, db.stories, async () => {
     await Promise.all([db.decks.clear(), db.cards.clear(), db.logs.clear(), db.settings.where('key').notEqual('background').delete()])
+    // Older backups have no stories; keep the current ones in that case.
+    if (Array.isArray(data.stories)) {
+      await db.stories.clear()
+      await db.stories.bulkAdd(data.stories.map(s => ({ ...s, createdAt: toDate(s.createdAt), readAt: toDate(s.readAt) })))
+    }
     await db.decks.bulkAdd(data.decks)
     await db.cards.bulkAdd(cards)
     await db.logs.bulkAdd(logs)

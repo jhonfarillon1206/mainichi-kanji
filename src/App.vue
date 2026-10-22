@@ -26,9 +26,9 @@ watch(bgBlob, blob => {
   </template>
 
   <header class="relative z-30" :class="bgUrl && 'on-picture'">
-    <nav class="mx-auto flex max-w-5xl items-center gap-1 px-4 py-4">
-      <RouterLink to="/" class="legible mr-auto flex items-center gap-2.5">
-        <svg viewBox="0 0 40 40" class="h-9 w-9" aria-hidden="true">
+    <nav class="mx-auto flex max-w-5xl items-center gap-0.5 px-3 py-4 sm:gap-1 sm:px-4">
+      <RouterLink to="/" class="legible mr-auto flex items-center gap-2 sm:gap-2.5">
+        <svg viewBox="0 0 40 40" class="h-8 w-8 shrink-0 sm:h-9 sm:w-9" aria-hidden="true">
           <g transform="translate(20 20)">
             <path v-for="r in [0, 72, 144, 216, 288]" :key="r" :transform="`rotate(${r})`"
               d="M0 -2 C -7 -6 -8 -15 -3 -18 L 0 -15 L 3 -18 C 8 -15 7 -6 0 -2 Z" fill="#f2a7b8" stroke="#e07a95" stroke-width=".8" />
@@ -36,12 +36,13 @@ watch(bgBlob, blob => {
           </g>
         </svg>
         <span class="leading-tight">
-          <span class="block font-jp text-xl font-semibold">毎日漢字</span>
-          <span class="block text-[11px] font-medium text-ink/55">Mainichi Kanji</span>
+          <span class="block whitespace-nowrap font-jp text-xl font-semibold">毎日漢字</span>
+          <span class="hidden text-[11px] font-medium text-ink/55 sm:block">Mainichi Kanji</span>
         </span>
       </RouterLink>
-      <RouterLink to="/" class="glass rounded-full px-4 py-2 text-sm font-bold text-ink/70 hover:text-ink" exact-active-class="!text-ink bg-white/70">Decks</RouterLink>
-      <RouterLink to="/settings" class="glass rounded-full px-4 py-2 text-sm font-bold text-ink/70 hover:text-ink" active-class="!text-ink bg-white/70">Settings</RouterLink>
+      <RouterLink to="/" class="glass rounded-full px-2.5 py-2 text-[13px] font-bold sm:px-4 sm:text-sm text-ink/70 hover:text-ink" exact-active-class="!text-ink bg-white/70">Decks</RouterLink>
+      <RouterLink to="/reading" class="glass rounded-full px-2.5 py-2 text-[13px] font-bold sm:px-4 sm:text-sm text-ink/70 hover:text-ink" active-class="!text-ink bg-white/70">Reading</RouterLink>
+      <RouterLink to="/settings" class="glass rounded-full px-2.5 py-2 text-[13px] font-bold sm:px-4 sm:text-sm text-ink/70 hover:text-ink" active-class="!text-ink bg-white/70">Settings</RouterLink>
     </nav>
   </header>
   <main class="relative z-10 mx-auto max-w-5xl px-4 pb-24 pt-2" :class="bgUrl && 'on-picture'">
