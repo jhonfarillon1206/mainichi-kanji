@@ -18,7 +18,46 @@ const data = useLive(async () => {
   return { story, number: i + 1, prev: same[i - 1] || null, next: same[i + 1] || null }
 }, null)
 const story = computed(() => data.value?.story)
-const paras = computed(() => (story.value ? paragraphs(story.value.body).map(p => p.map(tokens)) : []))
+
+// ---- Word meanings from your own decks ----
+const cards = useLive(() => db.cards.toArray(), [])
+const dict = computed(() => {
+  const m = new Map()
+  for (const c of cards.value || []) {
+    const f = (c.front || '').trim()
+    if (f && c.meaning && !m.has(f)) m.set(f, c)
+  }
+  return m
+})
+// Longest deck word that covers this kanji run: 食 + べました → 食べる, 大 + きくて → 大きい.
+function lookup(word, after) {
+  const text = word + after
+  let best = null
+  for (const [front, c] of dict.value) {
+    if (!front.startsWith(word)) continue
+    const stem = /[うくぐすつぬぶむるい]$/.test(front) ? front.slice(0, -1) : null
+    const hit = text.startsWith(front) || (stem && stem.length >= word.length && text.startsWith(stem))
+    if (hit && (!best || front.length > best.front.length)) best = c
+  }
+  return best
+}
+const withInfo = line => {
+  const ts = tokens(line)
+  return ts.map((t, i) => (t.reading ? { ...t, info: lookup(t.text, ts[i + 1] && !ts[i + 1].reading ? ts[i + 1].text : '') } : t))
+}
+const paras = computed(() => (story.value ? paragraphs(story.value.body).map(p => p.map(withInfo)) : []))
+
+// Popup: hover on PC, tap on phone.
+const canHover = window.matchMedia?.('(hover: hover)').matches
+const active = ref(null)
+function show(key, t) {
+  active.value = { key, word: t.info?.front || t.text, reading: t.info?.reading || t.reading, meaning: t.info?.meaning || '' }
+}
+function tap(key, t) {
+  flip(key)
+  if (active.value?.key === key) active.value = null
+  else show(key, t)
+}
 
 // ---- Furigana: all on, or tap a word to show just that one. All-on is remembered on this device. ----
 let savedFuri = false
@@ -116,7 +155,9 @@ async function remove() {
                 v-if="t.reading"
                 class="cursor-pointer rounded decoration-sakura decoration-2 underline-offset-[6px] hover:bg-sakura-soft"
                 :class="!furigana && !shown.has(`${pi}-${li}-${ti}`) && 'underline decoration-dotted'"
-                @click="flip(`${pi}-${li}-${ti}`)"
+                @click="tap(`${pi}-${li}-${ti}`, t)"
+                @mouseenter="canHover && show(`${pi}-${li}-${ti}`, t)"
+                @mouseleave="canHover && (active = null)"
               >{{ t.text }}<rt class="text-[0.5em] text-shu" :class="!(furigana || shown.has(`${pi}-${li}-${ti}`)) && 'invisible'">{{ t.reading }}</rt></ruby>
               <template v-else>{{ t.text }}</template>
             </template>
@@ -160,6 +201,16 @@ async function remove() {
       <button class="btn-danger mr-auto" @click="remove">Delete</button>
       <RouterLink v-if="data.prev" :to="`/reading/${data.prev.id}`" class="btn-ghost">← Prev</RouterLink>
       <RouterLink v-if="data.next" :to="`/reading/${data.next.id}`" class="btn-primary">Next chapter →</RouterLink>
+    </div>
+
+    <!-- Word popup -->
+    <div
+      v-if="active"
+      class="fixed inset-x-0 bottom-5 z-40 mx-auto w-fit max-w-[90vw] cursor-pointer rounded-2xl bg-ink px-5 py-3 text-center text-white shadow-xl"
+      @click="active = null"
+    >
+      <p class="font-jp text-2xl font-semibold">{{ active.word }} <span class="ml-1 text-lg text-sakura">{{ active.reading }}</span></p>
+      <p class="mt-0.5 text-sm" :class="active.meaning ? 'text-white/90' : 'text-white/50'">{{ active.meaning || 'Not in your decks' }}</p>
     </div>
   </div>
 </template>
