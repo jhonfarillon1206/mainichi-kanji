@@ -3,6 +3,7 @@ import { ref, reactive, computed, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db, useLive } from '../lib/db'
 import { tokens, spoken, paragraphs } from '../lib/story'
+import { loadDict, deckIndex, lookup } from '../lib/dict'
 import { toast, ask } from '../lib/ui'
 import StoryModal from '../components/StoryModal.vue'
 
@@ -19,31 +20,14 @@ const data = useLive(async () => {
 }, null)
 const story = computed(() => data.value?.story)
 
-// ---- Word meanings from your own decks ----
+// ---- Word meanings: your decks first, then the built-in dictionary ----
 const cards = useLive(() => db.cards.toArray(), [])
-const dict = computed(() => {
-  const m = new Map()
-  for (const c of cards.value || []) {
-    const f = (c.front || '').trim()
-    if (f && c.meaning && !m.has(f)) m.set(f, c)
-  }
-  return m
-})
-// Longest deck word that covers this kanji run: 食 + べました → 食べる, 大 + きくて → 大きい.
-function lookup(word, after) {
-  const text = word + after
-  let best = null
-  for (const [front, c] of dict.value) {
-    if (!front.startsWith(word)) continue
-    const stem = /[うくぐすつぬぶむるい]$/.test(front) ? front.slice(0, -1) : null
-    const hit = text.startsWith(front) || (stem && stem.length >= word.length && text.startsWith(stem))
-    if (hit && (!best || front.length > best.front.length)) best = c
-  }
-  return best
-}
+const deck = computed(() => deckIndex(cards.value))
+const dict = ref({})
+loadDict().then(d => { dict.value = d })
 const withInfo = line => {
   const ts = tokens(line)
-  return ts.map((t, i) => (t.reading ? { ...t, info: lookup(t.text, ts[i + 1] && !ts[i + 1].reading ? ts[i + 1].text : '') } : t))
+  return ts.map((t, i) => (t.reading ? { ...t, info: lookup(t.text, t.reading, ts[i + 1] && !ts[i + 1].reading ? ts[i + 1].text : '', deck.value, dict.value) } : t))
 }
 const paras = computed(() => (story.value ? paragraphs(story.value.body).map(p => p.map(withInfo)) : []))
 
@@ -51,7 +35,7 @@ const paras = computed(() => (story.value ? paragraphs(story.value.body).map(p =
 const canHover = window.matchMedia?.('(hover: hover)').matches
 const active = ref(null)
 function show(key, t) {
-  active.value = { key, word: t.info?.front || t.text, reading: t.info?.reading || t.reading, meaning: t.info?.meaning || '' }
+  active.value = { key, word: t.info?.front || t.text, reading: t.info?.reading || t.reading, meaning: t.info?.meaning || '', fromDeck: !!t.info?.fromDeck }
 }
 function tap(key, t) {
   flip(key)
@@ -203,6 +187,10 @@ async function remove() {
       <RouterLink v-if="data.next" :to="`/reading/${data.next.id}`" class="btn-primary">Next chapter →</RouterLink>
     </div>
 
+    <p class="mt-6 text-center text-[11px] text-ink/40">
+      Dictionary: <a href="https://www.edrdg.org/edrdg/licence.html" target="_blank" rel="noopener" class="underline">JMdict</a> © EDRDG, CC BY-SA 4.0
+    </p>
+
     <!-- Word popup -->
     <div
       v-if="active"
@@ -210,7 +198,7 @@ async function remove() {
       @click="active = null"
     >
       <p class="font-jp text-2xl font-semibold">{{ active.word }} <span class="ml-1 text-lg text-sakura">{{ active.reading }}</span></p>
-      <p class="mt-0.5 text-sm" :class="active.meaning ? 'text-white/90' : 'text-white/50'">{{ active.meaning || 'Not in your decks' }}</p>
+      <p class="mt-0.5 text-sm" :class="active.meaning ? 'text-white/90' : 'text-white/50'">{{ active.meaning || 'No meaning found' }}</p>
     </div>
   </div>
 </template>

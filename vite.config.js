@@ -16,6 +16,11 @@ export default defineConfig({
           urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/,
           handler: 'CacheFirst',
           options: { cacheName: 'google-fonts', expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 }, cacheableResponse: { statuses: [0, 200] } }
+            }, {
+          // Built-in dictionary for Reading: saved after first use, works offline.
+          urlPattern: ({ url }) => url.pathname.endsWith('/dict.json'),
+          handler: 'StaleWhileRevalidate',
+          options: { cacheName: 'dictionary' }
         }]
       },
       manifest: {
